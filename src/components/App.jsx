@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './App.styles.css';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -16,115 +16,87 @@ const Status = {
   REJECTED: 'rejected',
 };
 
-export class App extends Component {
-  state = {
-    page: 1,
-    query: '',
-    images: [],
-    loading: false,
-    error: null,
-    showModal: false,
-    totalHits: 0,
-    modalImgProps: { url: '', alt: '' },
-    status: Status.IDLE,
-  };
+export function App() {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalImgUrl, setModalImgUrl] = useState('');
+  const [modalImgAlt, setModalImgAlt] = useState('');
+  // const [totalHits, setTotalHits] = useState(0);
+  const [status, setStatus] = useState(Status.IDLE);
 
-  async componentDidUpdate(_, prevState) {
-    const { page, query } = this.state;
-
-    if (query.trim() === '') {
-      toast('What to show you?', {
-        icon: '👏',
-      });
+  useEffect(() => {
+    // setStatus(Status.IDLE);
+    if (query === '') {
       return;
     }
-
-    if (prevState.page !== page || prevState.query !== query) {
-      this.setState({ loading: true });
-
+    async function searchImages() {
       try {
         const fetchImages = await getImages(query, page);
 
-        this.setState(prevState => ({
-          images: [...prevState.images, ...fetchImages.hits],
-          totalHits: fetchImages.totalHits,
-        }));
+        setImages(prevState => [...prevState, ...fetchImages.hits]);
+        // setTotalHits(fetchImages.totalHits);
+        // setStatus(Status.RESOLVED);
 
         if (fetchImages.hits.length === 0) {
           toast.error(
             'Sorry, there are no images matching your search query. Please try again.'
           );
         }
-
-        // if (page * 12 > this.state.totalHits) {
-        //   toast.warn('Sorry, this is the last page...');
-        // }
       } catch (error) {
-        toast.error('Something went wrong :(');
-        // this.setState({
-        //   error: 'Something went wrong :(',
-        // });
+        setError(error);
+        setStatus(Status.REJECTED);
       } finally {
-        this.setState({ loading: false });
+        setLoading(false);
       }
     }
-  }
+    searchImages();
+  }, [query, page]);
 
-  handleSubmit = event => {
-    event.preventDefault();
-
-    if (event.target.elements.query.value !== this.state.query) {
-      this.setState({
-        page: 1,
-        query: event.target.elements.query.value,
-        images: [],
-      });
+  const handleSearchFormSubmit = findQuery => {
+    if (findQuery !== query) {
+      setPage(1);
+      setQuery(findQuery);
+      setImages([]);
     } else {
       toast('What to show you?', {
         icon: '👏',
       });
     }
-
-    // event.target.reset();
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const loadMore = () => {
+    setPage(prevState => prevState.page + 1);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  handleImgClick = ({ largeImageURL: url, tags: alt }) => {
-    this.setState({ modalImgProps: { url, alt } });
-    this.toggleModal();
+  const handleImgClick = ({ largeImageURL: url, tags: alt }) => {
+    setModalImgUrl(url);
+    setModalImgAlt(alt);
+    toggleModal();
   };
 
-  render() {
-    const {
-      loading,
-      error,
-      images,
-      showModal,
+  // const totalPages = Math.ceil(totalHits / 12);
 
-      modalImgProps: { url, alt },
-    } = this.state;
-
-    return (
-      <div className={styles.app}>
-        <Searchbar onSubmit={this.handleSubmit} />
-        {error && <div style={{ color: 'red' }}>{error}</div>}
-        {loading && <Loader />}
-        {showModal && <Modal url={url} alt={alt} onClose={this.toggleModal} />}
-        <ImageGallery images={images} openModal={this.handleImgClick} />
-        {images.length !== 0 && <Button btnLoadMore={this.loadMore} />}
-        <Toaster position="top-left" />
-      </div>
-    );
-  }
+  return (
+    <div className={styles.app}>
+      <Searchbar onSubmit={handleSearchFormSubmit} />
+      {status === 'idle' && <></>}
+      {status === 'pending' && <Loader />}
+      {status === 'rejected' && <div style={{ color: 'red' }}>{error}</div>}
+      {loading && <Loader />}
+      {showModal && (
+        <Modal url={modalImgUrl} alt={modalImgAlt} onClose={toggleModal} />
+      )}
+      <ImageGallery images={images} openModal={handleImgClick} />
+      {images.length !== 0 && <Button btnLoadMore={loadMore} />}
+      <Toaster position="top-left" />
+    </div>
+  );
 }
