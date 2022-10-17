@@ -25,7 +25,7 @@ export function App() {
   const [showModal, setShowModal] = useState(false);
   const [modalImgUrl, setModalImgUrl] = useState('');
   const [modalImgAlt, setModalImgAlt] = useState('');
-  // const [totalHits, setTotalHits] = useState(0);
+  const [totalHits, setTotalHits] = useState(0);
   const [status, setStatus] = useState(Status.IDLE);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function App() {
         const fetchImages = await getImages(query, page);
 
         setImages(prevState => [...prevState, ...fetchImages.hits]);
-        // setTotalHits(fetchImages.totalHits);
+        setTotalHits(fetchImages.totalHits);
         // setStatus(Status.RESOLVED);
 
         if (fetchImages.hits.length === 0) {
@@ -69,7 +69,7 @@ export function App() {
   };
 
   const loadMore = () => {
-    setPage(prevState => prevState.page + 1);
+    setPage(prevState => page + 1);
   };
 
   const toggleModal = () => {
@@ -82,7 +82,7 @@ export function App() {
     toggleModal();
   };
 
-  // const totalPages = Math.ceil(totalHits / 12);
+  const totalPages = Math.ceil(totalHits / 12);
 
   return (
     <div className={styles.app}>
@@ -95,7 +95,9 @@ export function App() {
         <Modal url={modalImgUrl} alt={modalImgAlt} onClose={toggleModal} />
       )}
       <ImageGallery images={images} openModal={handleImgClick} />
-      {images.length !== 0 && <Button btnLoadMore={loadMore} />}
+      {images.length !== 0 && totalPages !== page && (
+        <Button btnLoadMore={loadMore} />
+      )}
       <Toaster position="top-left" />
     </div>
   );

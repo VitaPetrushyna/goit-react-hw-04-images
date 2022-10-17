@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 const ImageGallery = ({ images, openModal }) => (
   <ul className={styles.imageGallery}>
-    {images.map(({ id, webformatURL, tags, largeImageURL }) => (
+    {images.map(({ webformatURL, tags, largeImageURL }, id) => (
       <ImageGalleryItem
         key={id}
         imageSrc={webformatURL}
